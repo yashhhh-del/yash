@@ -1,10 +1,16 @@
+# ==========================================
+# Customer Insights Analyzer - Streamlit Ready
+# ==========================================
+
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import gender_guesser.detector as gender
 import os
+import warnings
 
+warnings.filterwarnings("ignore")
 sns.set(style="whitegrid")
 
 st.title("📊 Customer Name Insights Analyzer")
@@ -13,10 +19,7 @@ st.write("Analyze customer demographics, gender distribution, and feedback trend
 # ------------------------------
 # File Upload / Default
 # ------------------------------
-
 uploaded_file = st.file_uploader("Upload your dataset (CSV file)", type=["csv"])
-
-# Default file location (same folder as app)
 default_file_path = os.path.join(os.getcwd(), "2000_dataset.csv")
 
 if uploaded_file is not None:
@@ -24,7 +27,7 @@ if uploaded_file is not None:
     st.success("✅ File uploaded successfully!")
 elif os.path.exists(default_file_path):
     df = pd.read_csv(default_file_path, parse_dates=['Last_Purchase_Date'], dayfirst=True)
-    st.info(f"⚡ No file uploaded. Using default dataset: `{default_file_path}`")
+    st.info(f"⚡ Using default dataset: `{default_file_path}`")
 else:
     st.error("❌ No dataset available! Please upload a CSV file.")
     st.stop()
@@ -36,17 +39,16 @@ st.subheader("Preview of Data")
 st.write(df.head())
 
 # ------------------------------
-# Name Split
+# Name Split Safe
 # ------------------------------
-# Ensure 'Name' column is string and fill NaN with empty string
 df['Name'] = df['Name'].astype(str)
-
-# Split into first and last name safely
+df['Name'] = df['Name'].str.strip().str.replace(r'\s+', ' ', regex=True)
+df['Name'] = df['Name'].str.replace(r'\xa0', ' ', regex=True)  # remove non-breaking spaces
 df[['First_Name', 'Last_Name']] = df['Name'].str.split(' ', n=1, expand=True)
-
-# Optional: fill last name NaN with empty string
 df['Last_Name'] = df['Last_Name'].fillna('')
 
+st.subheader("First & Last Name Split")
+st.write(df[['Name', 'First_Name', 'Last_Name']].head())
 
 # ------------------------------
 # Gender Detection
@@ -80,7 +82,14 @@ st.pyplot(fig1)
 st.subheader("Top 5 States by Customer Count")
 top_states = df['State'].value_counts().head(5)
 fig2, ax2 = plt.subplots(figsize=(8, 6))
-sns.barplot(x=top_states.index, y=top_states.values, palette='viridis', ax=ax2, hue=top_states.index, legend=False)
+sns.barplot(
+    x=top_states.index,
+    y=top_states.values,
+    hue=top_states.index,
+    palette='viridis',
+    ax=ax2,
+    legend=False
+)
 st.pyplot(fig2)
 
 # ------------------------------
@@ -97,12 +106,19 @@ def purchase_segment(x):
 df['Purchase_Segment'] = df['Purchase_Count'].apply(purchase_segment)
 
 # ------------------------------
-# Feedback per City
+# Average Feedback per City
 # ------------------------------
 st.subheader("Average Feedback Score per City")
 feedback_city = df.groupby('City')['Feedback_Score'].mean().sort_values(ascending=False)
 fig3, ax3 = plt.subplots(figsize=(10, 6))
-sns.barplot(x=feedback_city.index, y=feedback_city.values, palette='magma', ax=ax3, hue=feedback_city.index, legend=False)
+sns.barplot(
+    x=feedback_city.index,
+    y=feedback_city.values,
+    hue=feedback_city.index,
+    palette='magma',
+    ax=ax3,
+    legend=False
+)
 plt.xticks(rotation=45)
 st.pyplot(fig3)
 
@@ -117,12 +133,18 @@ feedback_time.plot(kind='line', marker='o', ax=ax4)
 st.pyplot(fig4)
 
 # ------------------------------
-# Scatter Plot Purchase vs Feedback
+# Purchase Count vs Feedback Score
 # ------------------------------
 st.subheader("Purchase Count vs Feedback Score (by Gender)")
 fig5, ax5 = plt.subplots(figsize=(8, 6))
-sns.scatterplot(x='Purchase_Count', y='Feedback_Score', hue='Gender', data=df, palette='Set1', ax=ax5)
+sns.scatterplot(
+    x='Purchase_Count',
+    y='Feedback_Score',
+    hue='Gender',
+    data=df,
+    palette='Set1',
+    ax=ax5
+)
 st.pyplot(fig5)
 
 st.success("✅ Analysis Complete!")
-
