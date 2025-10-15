@@ -38,7 +38,15 @@ st.write(df.head())
 # ------------------------------
 # Name Split
 # ------------------------------
+# Ensure 'Name' column is string and fill NaN with empty string
+df['Name'] = df['Name'].astype(str)
+
+# Split into first and last name safely
 df[['First_Name', 'Last_Name']] = df['Name'].str.split(' ', n=1, expand=True)
+
+# Optional: fill last name NaN with empty string
+df['Last_Name'] = df['Last_Name'].fillna('')
+
 
 # ------------------------------
 # Gender Detection
@@ -117,3 +125,4 @@ sns.scatterplot(x='Purchase_Count', y='Feedback_Score', hue='Gender', data=df, p
 st.pyplot(fig5)
 
 st.success("✅ Analysis Complete!")
+
