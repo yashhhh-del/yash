@@ -4,3 +4,6 @@ numpy
 plotly
 gender-guesser
 python-dateutil
+statsmodels
+scipy
+
