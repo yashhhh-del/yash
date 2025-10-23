@@ -6,5 +6,7 @@ gender-guesser
 python-dateutil
 statsmodels
 scipy
+scikit-learn
 textblob
+
 
