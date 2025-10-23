@@ -13,7 +13,7 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-# ================= PAGE CONFIG ====================
+# Page config
 st.set_page_config(
     page_title="Enhanced Customer Insights Analyzer",
     page_icon="📈",
@@ -21,7 +21,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ================ CUSTOM CSS ====================
+# Custom CSS
 st.markdown("""
 <style>
 .main-header {
@@ -40,7 +40,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ================= DATA LOADING & PROCESSING ========
+# Data loading & processing
 @st.cache_data
 def load_data(uploaded_file, default_path=None):
     try:
@@ -58,12 +58,10 @@ def load_data(uploaded_file, default_path=None):
 @st.cache_data
 def process_data(df):
     d = gender.Detector()
-    # Clean and split names
     df['Name'] = df['Name'].astype(str).str.strip().str.replace(r'\s+', ' ', regex=True)
     df[['First_Name', 'Last_Name']] = df['Name'].str.split(' ', n=1, expand=True)
     df['Last_Name'] = df['Last_Name'].fillna('')
     
-    # Gender detection
     df['Gender'] = df['First_Name'].apply(lambda x: d.get_gender(x))
     df['Gender'] = df['Gender'].replace({
         'male': 'Male', 'mostly_male': 'Male',
@@ -71,19 +69,16 @@ def process_data(df):
         'andy': 'Unknown'
     })
     
-    # Purchase segment
     df['Purchase_Segment'] = pd.cut(
         df['Purchase_Count'],
         bins=[0,5,12,float('inf')],
         labels=['Low','Medium','High']
     )
     
-    # Date processing
     df['Last_Purchase_Date'] = pd.to_datetime(df['Last_Purchase_Date'], errors='coerce')
     df['Purchase_Month'] = df['Last_Purchase_Date'].dt.to_period('M').astype(str)
     df['Purchase_Year'] = df['Last_Purchase_Date'].dt.year
 
-    # Sentiment analysis if Feedback_Text exists
     if 'Feedback_Text' in df.columns:
         df['Sentiment_Polarity'] = df['Feedback_Text'].astype(str).apply(lambda x: TextBlob(x).sentiment.polarity)
         df['Sentiment_Category'] = pd.cut(
@@ -92,26 +87,28 @@ def process_data(df):
             labels=['Negative', 'Neutral', 'Positive']
         )
     
-    # Monetary: handle missing Total_Spent gracefully
     if 'Total_Spent' in df.columns:
         df['Total_Spent'] = pd.to_numeric(df['Total_Spent'], errors='coerce').fillna(0)
         df['Monetary'] = df['Total_Spent']
     else:
-        # Fall back if missing, maybe approximate or zero
         df['Monetary'] = 0
-    
-    # RFM calculation
+
     df['Recency'] = (datetime.now() - df['Last_Purchase_Date']).dt.days
     df['Frequency'] = df['Purchase_Count']
-    # RFM score - quantiles, handle missing Monetary by zero
-    df['R_Score'] = pd.qcut(df['Recency'].fillna(df['Recency'].max()), 3, labels=[3,2,1]).astype(int)
-    df['F_Score'] = pd.qcut(df['Frequency'], 3, labels=[1,2,3]).astype(int)
-    df['M_Score'] = pd.qcut(df['Monetary'], 3, labels=[1,2,3]).astype(int)
-    df['RFM_Score'] = df['R_Score'] + df['F_Score'] + df['M_Score']
+    df['Recency'] = df['Recency'].fillna(df['Recency'].max())
 
+    df['R_Score'] = pd.qcut(df['Recency'], 3, labels=[3,2,1]).astype(int)
+    df['F_Score'] = pd.qcut(df['Frequency'], 3, labels=[1,2,3]).astype(int)
+    
+    try:
+        df['M_Score'] = pd.qcut(df['Monetary'], 3, labels=[1,2,3]).astype(int)
+    except ValueError:
+        df['M_Score'] = 1  
+
+    df['RFM_Score'] = df['R_Score'] + df['F_Score'] + df['M_Score']
     return df
 
-# =================== APP START ====================
+# Main app
 st.markdown('<h1 class="main-header">📊 Enhanced Customer Insights Analyzer</h1>', unsafe_allow_html=True)
 
 uploaded_file = st.sidebar.file_uploader("Upload Customer Dataset (CSV)", type=["csv"])
@@ -126,19 +123,16 @@ else:
 
 df = process_data(df)
 
-# Sidebar filters
 gender_filter = st.sidebar.multiselect("Select Gender", options=df['Gender'].unique(), default=list(df['Gender'].unique()))
 segment_filter = st.sidebar.multiselect("Purchase Segment", options=['Low','Medium','High'], default=['Low','Medium','High'])
 state_filter = st.sidebar.multiselect("Select States", options=sorted(df['State'].unique()), default=list(df['State'].unique()))
 
-# Apply filters
 df_filtered = df[
     (df['Gender'].isin(gender_filter)) &
     (df['Purchase_Segment'].isin(segment_filter)) &
     (df['State'].isin(state_filter))
 ]
 
-# Metrics
 col1, col2, col3, col4, col5 = st.columns(5)
 col1.metric("Total Customers", f"{len(df_filtered):,}")
 col2.metric("Avg Feedback Score", f"{df_filtered['Feedback_Score'].mean():.2f}")
@@ -148,7 +142,6 @@ col5.metric("Covered States", f"{df_filtered['State'].nunique()}")
 
 st.divider()
 
-# Tabs for insights
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "Overview", "Demographics", "Purchases", "Feedback", "Geography", "Predictive Insights"
 ])
@@ -238,7 +231,7 @@ with tab6:
         fig_churn = px.histogram(churn_df, x='Churn_Probability', nbins=20, title='Churn Probability Distribution')
         st.plotly_chart(fig_churn, use_container_width=True)
     else:
-        st.info("Not enough data to run churn prediction.")
+        st.info("Not enough data for churn prediction.")
 
 st.divider()
 st.markdown("<center>📊 Enhanced Customer Insights Analyzer - 2025 Edition</center>", unsafe_allow_html=True)
