@@ -1,6 +1,6 @@
 # ==========================================
 # Enhanced Customer Insights Analyzer
-# Modern Tech Stack with Performance Optimization
+# Modern Tech Stack - Streamlit Cloud Ready
 # ==========================================
 
 import streamlit as st
@@ -13,7 +13,6 @@ import os
 import warnings
 from datetime import datetime
 import numpy as np
-from streamlit_option_menu import streamlit_option_menu
 
 warnings.filterwarnings("ignore")
 
@@ -114,7 +113,6 @@ st.markdown("### Analyze customer demographics, gender distribution, and feedbac
 # SIDEBAR
 # ==========================================
 with st.sidebar:
-    st.image("https://img.icons8.com/clouds/200/business-report.png", width=150)
     st.title("⚙️ Configuration")
     
     uploaded_file = st.file_uploader("Upload Dataset (CSV)", type=["csv"], help="Upload your customer data CSV file")
