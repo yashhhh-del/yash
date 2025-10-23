@@ -325,8 +325,7 @@ with tab3:
     # Purchase trends over time
     st.subheader("📈 Purchase Trends Over Time")
     monthly_purchases = df_filtered.groupby('Purchase_Month').agg({
-        'Purchase_Count': 'sum',
-        'Customer_ID': 'count'
+        'Purchase_Count': ['sum', 'count']
     }).reset_index()
     monthly_purchases.columns = ['Month', 'Total_Purchases', 'Customer_Count']
     
